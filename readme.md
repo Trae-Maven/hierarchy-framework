@@ -41,7 +41,7 @@ Each layer has typed access to its parent:
 
 ## Requirements
 
-Dependency-Injector has no external runtime dependencies.
+Hierarchy-Framework has no external runtime dependencies.
 
 The following is only needed at compile time for annotation processing:
 ```xml
