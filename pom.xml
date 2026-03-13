@@ -29,11 +29,11 @@
 
     <repositories>
         <repository>
-            <id>github</id>
+            <id>github-utilities</id>
             <url>https://maven.pkg.github.com/Trae-Maven/utilities</url>
         </repository>
         <repository>
-            <id>github</id>
+            <id>github-dependency-injector</id>
             <url>https://maven.pkg.github.com/Trae-Maven/dependency-injector</url>
         </repository>
     </repositories>
