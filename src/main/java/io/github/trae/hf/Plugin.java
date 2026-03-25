@@ -39,7 +39,7 @@ public interface Plugin {
     default void initializePlugin() {
         ComponentSorter.addComparator(new HierarchyComparator());
 
-        InjectorApi.initialize(this.getClass());
+        InjectorApi.initialize(this);
 
         InjectorApi.executeCallback(this.getClass(), this::onComponentInitialize);
     }
@@ -55,7 +55,7 @@ public interface Plugin {
     default void shutdownPlugin() {
         InjectorApi.executeCallback(this.getClass(), this::onComponentShutdown);
 
-        InjectorApi.shutdown(this.getClass());
+        InjectorApi.shutdown(this);
     }
 
     /**
