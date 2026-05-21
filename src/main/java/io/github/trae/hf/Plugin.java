@@ -2,7 +2,6 @@ package io.github.trae.hf;
 
 import io.github.trae.di.InjectorApi;
 import io.github.trae.di.sorters.ComponentSorter;
-import io.github.trae.di.sorters.comparators.ComponentComparator;
 import io.github.trae.hf.comparators.HierarchyComparator;
 import io.github.trae.utilities.UtilString;
 
@@ -19,12 +18,6 @@ import io.github.trae.utilities.UtilString;
 public interface Plugin {
 
     /**
-     * Shared comparator instance used to sort components in hierarchy
-     * order during initialization and shutdown.
-     */
-    ComponentComparator HIERARCHY_COMPARATOR = new HierarchyComparator();
-
-    /**
      * Returns a human-readable name for this plugin, derived from the
      * implementing class name by expanding camelCase into spaced words.
      *
@@ -35,7 +28,7 @@ public interface Plugin {
     }
 
     /**
-     * Bootstraps the plugin by registering the {@link #HIERARCHY_COMPARATOR},
+     * Bootstraps the plugin by registering a {@link HierarchyComparator},
      * initializing the dependency injection container, and executing
      * {@link #onComponentInitialize(Object)} for each component belonging
      * to this plugin.
@@ -44,7 +37,7 @@ public interface Plugin {
      * then Modules, then SubModules, grouped by their owning Manager.</p>
      */
     default void initializePlugin() {
-        ComponentSorter.addComparator(HIERARCHY_COMPARATOR);
+        ComponentSorter.addComparator(new HierarchyComparator());
 
         InjectorApi.initialize(this);
 
@@ -53,9 +46,8 @@ public interface Plugin {
 
     /**
      * Shuts down the plugin by executing {@link #onComponentShutdown(Object)}
-     * for each component belonging to this plugin, destroying the container's
-     * components via {@link InjectorApi#shutdown(Object)}, and removing the
-     * {@link #HIERARCHY_COMPARATOR} from the {@link ComponentSorter}.
+     * for each component belonging to this plugin, then destroying the
+     * container's components via {@link InjectorApi#shutdown(Object)}.
      *
      * <p>Components are shut down in reverse initialization order:
      * SubModules first, then Modules, then Managers.</p>
@@ -64,8 +56,6 @@ public interface Plugin {
         InjectorApi.executeCallback(this.getClass(), this::onComponentShutdown);
 
         InjectorApi.shutdown(this);
-
-        ComponentSorter.removeComparator(HIERARCHY_COMPARATOR);
     }
 
     /**
