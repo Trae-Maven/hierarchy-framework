@@ -29,9 +29,12 @@ public interface Plugin {
 
     /**
      * Bootstraps the plugin by registering the {@link HierarchyComparator},
-     * initializing the dependency injection container, and executing
-     * {@link #onComponentInitialize(Object)} for each component belonging
-     * to this plugin.
+     * initializing the dependency injection container, and iterating each
+     * component belonging to this plugin.
+     *
+     * <p>For each component, {@link Frame#initializeFrame()} is called
+     * first (if the component is a {@link Frame}), followed by
+     * {@link #onComponentInitialize(Object)}.</p>
      *
      * <p>Components are initialized in hierarchy order: Managers first,
      * then Modules, then SubModules, grouped by their owning Manager.</p>
@@ -41,19 +44,35 @@ public interface Plugin {
 
         InjectorApi.initialize(this);
 
-        InjectorApi.executeCallback(this.getClass(), this::onComponentInitialize);
+        InjectorApi.executeCallback(this.getClass(), instance -> {
+            if (instance instanceof final Frame<?> frame) {
+                frame.initializeFrame();
+            }
+
+            this.onComponentInitialize(instance);
+        });
     }
 
     /**
-     * Shuts down the plugin by executing {@link #onComponentShutdown(Object)}
-     * for each component belonging to this plugin, then destroying the
-     * container's components.
+     * Shuts down the plugin by iterating each component belonging to this
+     * plugin, then destroying the container's components via
+     * {@link InjectorApi#shutdown(Object)}.
+     *
+     * <p>For each component, {@link Frame#shutdownFrame()} is called
+     * first (if the component is a {@link Frame}), followed by
+     * {@link #onComponentShutdown(Object)}.</p>
      *
      * <p>Components are shut down in reverse initialization order:
      * SubModules first, then Modules, then Managers.</p>
      */
     default void shutdownPlugin() {
-        InjectorApi.executeCallback(this.getClass(), this::onComponentShutdown);
+        InjectorApi.executeCallback(this.getClass(), instance -> {
+            if (instance instanceof final Frame<?> frame) {
+                frame.shutdownFrame();
+            }
+
+            this.onComponentShutdown(instance);
+        });
 
         InjectorApi.shutdown(this);
     }

@@ -48,4 +48,27 @@ public interface Frame<P extends Plugin> {
 
         return (P) InjectorApi.get(pluginClass);
     }
+
+    /**
+     * Called during {@link Plugin#initializePlugin()} after the dependency
+     * injection container is fully wired, before
+     * {@link Plugin#onComponentInitialize(Object)}.
+     *
+     * <p>Override to perform frame-specific setup such as loading
+     * configuration, registering internal listeners, or preparing
+     * resources that other components may depend on.</p>
+     */
+    default void initializeFrame() {
+    }
+
+    /**
+     * Called during {@link Plugin#shutdownPlugin()} before the dependency
+     * injection container begins destroying components, before
+     * {@link Plugin#onComponentShutdown(Object)}.
+     *
+     * <p>Override to perform frame-specific teardown such as flushing
+     * caches, closing connections, or releasing resources.</p>
+     */
+    default void shutdownFrame() {
+    }
 }
