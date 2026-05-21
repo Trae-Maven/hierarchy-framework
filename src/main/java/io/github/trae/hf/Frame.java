@@ -1,6 +1,7 @@
 package io.github.trae.hf;
 
 import io.github.trae.di.InjectorApi;
+import io.github.trae.di.impl.ToggleableComponent;
 import io.github.trae.utilities.UtilGeneric;
 import io.github.trae.utilities.UtilString;
 
@@ -17,7 +18,7 @@ import io.github.trae.utilities.UtilString;
  *
  * @param <P> the plugin type this frame belongs to
  */
-public interface Frame<P extends Plugin> {
+public interface Frame<P extends Plugin> extends ToggleableComponent {
 
     /**
      * Returns a human-readable name for this frame, derived from the
