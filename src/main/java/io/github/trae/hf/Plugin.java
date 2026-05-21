@@ -2,6 +2,7 @@ package io.github.trae.hf;
 
 import io.github.trae.di.InjectorApi;
 import io.github.trae.di.sorters.ComponentSorter;
+import io.github.trae.di.sorters.comparators.ComponentComparator;
 import io.github.trae.hf.comparators.HierarchyComparator;
 import io.github.trae.utilities.UtilString;
 
@@ -18,6 +19,12 @@ import io.github.trae.utilities.UtilString;
 public interface Plugin {
 
     /**
+     * Shared comparator instance used to sort components in hierarchy
+     * order during initialization and shutdown.
+     */
+    ComponentComparator HIERARCHY_COMPARATOR = new HierarchyComparator();
+
+    /**
      * Returns a human-readable name for this plugin, derived from the
      * implementing class name by expanding camelCase into spaced words.
      *
@@ -28,71 +35,72 @@ public interface Plugin {
     }
 
     /**
-     * Bootstraps the plugin by registering the {@link HierarchyComparator},
-     * initializing the dependency injection container, and iterating each
-     * component belonging to this plugin.
-     *
-     * <p>For each component, {@link Frame#initializeFrame()} is called
-     * first (if the component is a {@link Frame}), followed by
-     * {@link #onComponentInitialize(Object)}.</p>
+     * Bootstraps the plugin by registering the {@link #HIERARCHY_COMPARATOR},
+     * initializing the dependency injection container, and executing
+     * {@link #onComponentInitialize(Object)} for each component belonging
+     * to this plugin.
      *
      * <p>Components are initialized in hierarchy order: Managers first,
      * then Modules, then SubModules, grouped by their owning Manager.</p>
      */
     default void initializePlugin() {
-        ComponentSorter.addComparator(new HierarchyComparator());
+        ComponentSorter.addComparator(HIERARCHY_COMPARATOR);
 
         InjectorApi.initialize(this);
 
-        InjectorApi.executeCallback(this.getClass(), instance -> {
-            if (instance instanceof final Frame<?> frame) {
-                frame.initializeFrame();
-            }
-
-            this.onComponentInitialize(instance);
-        });
+        InjectorApi.executeCallback(this.getClass(), this::onComponentInitialize);
     }
 
     /**
-     * Shuts down the plugin by iterating each component belonging to this
-     * plugin, then destroying the container's components via
-     * {@link InjectorApi#shutdown(Object)}.
-     *
-     * <p>For each component, {@link Frame#shutdownFrame()} is called
-     * first (if the component is a {@link Frame}), followed by
-     * {@link #onComponentShutdown(Object)}.</p>
+     * Shuts down the plugin by executing {@link #onComponentShutdown(Object)}
+     * for each component belonging to this plugin, destroying the container's
+     * components via {@link InjectorApi#shutdown(Object)}, and removing the
+     * {@link #HIERARCHY_COMPARATOR} from the {@link ComponentSorter}.
      *
      * <p>Components are shut down in reverse initialization order:
      * SubModules first, then Modules, then Managers.</p>
      */
     default void shutdownPlugin() {
-        InjectorApi.executeCallback(this.getClass(), instance -> {
-            if (instance instanceof final Frame<?> frame) {
-                frame.shutdownFrame();
-            }
-
-            this.onComponentShutdown(instance);
-        });
+        InjectorApi.executeCallback(this.getClass(), this::onComponentShutdown);
 
         InjectorApi.shutdown(this);
+
+        ComponentSorter.removeComparator(HIERARCHY_COMPARATOR);
     }
 
     /**
      * Called for each component instance after the container has been
-     * fully wired. Use this to register components with external systems
-     * such as event buses, command handlers, or platform APIs.
+     * fully wired. If the instance is a {@link Frame}, its
+     * {@link Frame#initializeFrame()} method is invoked by default.
+     *
+     * <p>Override to register components with external systems such as
+     * event buses, command handlers, or platform APIs. Call
+     * {@code super.onComponentInitialize(instance)} to preserve the
+     * Frame lifecycle hook.</p>
      *
      * @param instance the component instance to register
      */
-    void onComponentInitialize(final Object instance);
+    default void onComponentInitialize(final Object instance) {
+        if (instance instanceof final Frame<?> frame) {
+            frame.initializeFrame();
+        }
+    }
 
     /**
      * Called for each component instance before the container begins
-     * destroying components. Use this to unregister components from
-     * external systems such as event buses, command handlers, or
-     * platform APIs.
+     * destroying components. If the instance is a {@link Frame}, its
+     * {@link Frame#shutdownFrame()} method is invoked by default.
+     *
+     * <p>Override to unregister components from external systems such as
+     * event buses, command handlers, or platform APIs. Call
+     * {@code super.onComponentShutdown(instance)} to preserve the
+     * Frame lifecycle hook.</p>
      *
      * @param instance the component instance to unregister
      */
-    void onComponentShutdown(final Object instance);
+    default void onComponentShutdown(final Object instance) {
+        if (instance instanceof final Frame<?> frame) {
+            frame.shutdownFrame();
+        }
+    }
 }
