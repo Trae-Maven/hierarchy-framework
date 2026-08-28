@@ -10,11 +10,11 @@ Hierarchy-Framework defines a layered architecture where each component has type
 
 - Strongly-typed parent-child relationships enforced through generics
 - Automatic parent resolution via reflection — no manual wiring required
-- Plugin, Manager, Module, and SubModule hierarchy layers
+- Plugin and Manager layers, with Node chains of any depth beneath each Manager
 - Human-readable component names derived from class names
 - Lifecycle hooks for initialization and shutdown at every layer
 - Platform integration callbacks for registering and unregistering components with external systems
-- HierarchyComparator for deterministic initialization order — Managers first, then Modules, then SubModules, grouped by owning Manager
+- HierarchyComparator for deterministic initialization order — Managers first, then Nodes by depth, grouped by owning Manager
 - Reverse-order shutdown — children are torn down before their parents
 - Built on the Dependency Injector and Utilities libraries
 - Designed for modern Java (Java 21+)
@@ -25,17 +25,19 @@ Hierarchy-Framework defines a layered architecture where each component has type
 ```
 Plugin
   └─ Manager
-       └─ Module
-            └─ SubModule
+       └─ Node
+            └─ Node
+                 └─ ...
 ```
 
 Each layer has typed access to its parent:
 
 | Component | Access |
 |---|---|
-| `Manager` | `getPlugin()` |
-| `Module` | `getPlugin()`, `getManager()` |
-| `SubModule` | `getPlugin()`, `getModule()` |
+| `Manager<P>` | `getPlugin()` |
+| `Node<P, Parent>` | `getPlugin()`, `getParent()` |
+
+`Parent` is bounded to `Frame<P>`, so every chain terminates at a Manager belonging to the same Plugin.
 
 ---
 
@@ -117,7 +119,7 @@ public class SpigotPlugin extends JavaPlugin implements Plugin {
 Managers are the direct children of a Plugin:
 ```java
 @Service
-public class ClientManager implements Manager<CorePlugin> {
+public class AccountManager implements Manager<CorePlugin> {
 
     @PostConstruct
     public void onPostConstruct() {
@@ -126,31 +128,31 @@ public class ClientManager implements Manager<CorePlugin> {
 }
 ```
 
-### Defining a Module
+### Defining a Node
 
-Modules live within a Manager and have typed access to both their Manager and Plugin:
+Nodes live beneath a Manager and have typed access to both their parent and their Plugin:
 ```java
 @Component
-public class ClientCommand implements Module<CorePlugin, ClientManager> {
+public class AccountCommand implements Node<CorePlugin, AccountManager> {
 
     public void execute() {
         final CorePlugin plugin = this.getPlugin();
-        final ClientManager manager = this.getManager();
+        final AccountManager accountManager = this.getParent();
     }
 }
 ```
 
-### Defining a SubModule
+### Nesting Nodes
 
-SubModules are the most granular components, living within a Module:
+A Node's parent may itself be a Node, to any depth:
 ```java
 @Component
-public class RankSubCommand implements SubModule<CorePlugin, ClientCommand> {
+public class RankSubCommand implements Node<CorePlugin, AccountCommand> {
 
     public void execute() {
         final CorePlugin plugin = this.getPlugin();
-        final ClientManager manager = this.getModule().getManager();
-        final ClientCommand module = this.getModule();
+        final AccountCommand accountCommand = this.getParent();
+        final AccountManager accountManager = command.getParent();
     }
 }
 ```
@@ -159,12 +161,12 @@ public class RankSubCommand implements SubModule<CorePlugin, ClientCommand> {
 
 The `HierarchyComparator` ensures components are initialized in hierarchy order, grouped by their owning Manager:
 ```
-ClientManager              (Manager)
-ClientCommand              (Module under ClientManager)
-RankSubCommand             (SubModule under ClientCommand)
+AccountManager             (Manager)
+AccountCommand             (Node under AccountManager, depth 1)
+RankSubCommand             (Node under AccountManager, depth 2)
 ```
 
-During shutdown, components are destroyed in the reverse order so that children are torn down before their parents.
+Components whose chain does not terminate at a Manager are sorted last. During shutdown, components are destroyed in the reverse order so that children are torn down before their parents.
 
 ### Multi-Application
 
@@ -179,7 +181,7 @@ public class FactionsPlugin extends SpigotPlugin {
 }
 ```
 
-Components in Factions can access Managers, Modules, and SubModules from Core via constructor or field injection.
+Components in Factions can access Managers and Nodes from Core via constructor or field injection.
 
 ---
 
@@ -190,6 +192,5 @@ Components in Factions can access Managers, Modules, and SubModules from Core vi
 | `Plugin` | Root application boundary with platform callbacks and DI bootstrapping |
 | `Frame<P>` | Base interface providing plugin resolution, lifecycle hooks, and naming |
 | `Manager<P>` | Top-level organizational component within a Plugin |
-| `Module<P, M>` | Mid-level component within a Manager |
-| `SubModule<P, M>` | Leaf-level component within a Module |
+| `Node<P, Parent>` | Component with typed access to its parent, nestable to any depth |
 | `HierarchyComparator` | Sorts components by Manager group and hierarchy depth |

@@ -9,17 +9,22 @@ import io.github.trae.utilities.UtilString;
  * The root of the hierarchy framework.
  *
  * <p>A Plugin represents an application or feature boundary that owns all
- * components beneath it. Managers, Modules, and SubModules all resolve
- * back to their owning Plugin instance via {@link Frame#getPlugin()}.</p>
+ * components beneath it. Managers and Nodes all resolve back to their owning
+ * Plugin instance via {@link Frame#getPlugin()}.</p>
  *
- * <p>Provides a human-readable name derived from the implementing class
- * name by expanding camelCase into spaced words.</p>
+ * <p>Provides a human-readable name derived from the simple name of the
+ * implementing class.</p>
  */
 public interface Plugin {
 
     /**
-     * Returns a human-readable name for this plugin, derived from the
-     * implementing class name by expanding camelCase into spaced words.
+     * Returns a human-readable name for this plugin, derived from the simple
+     * name of the implementing class by splitting it into spaced words at each
+     * word boundary — {@code CorePlugin} becomes {@code Core Plugin}.
+     *
+     * <p>The name comes from {@link Class#getSimpleName()}, so a nested class
+     * contributes only its own name without the enclosing type, and an
+     * anonymous class yields an empty string.</p>
      *
      * @return the formatted name of this plugin
      */
@@ -33,8 +38,9 @@ public interface Plugin {
      * {@link #onComponentInitialize(Object)} for each component belonging
      * to this plugin.
      *
-     * <p>Components are initialized in hierarchy order: Managers first,
-     * then Modules, then SubModules, grouped by their owning Manager.</p>
+     * <p>Components are initialized in hierarchy order: each {@link Manager}
+     * first, then the {@link Node Nodes} beneath it in ascending depth,
+     * grouped by their owning Manager.</p>
      */
     default void initializePlugin() {
         ComponentSorter.addComparator(new HierarchyComparator());
@@ -49,8 +55,8 @@ public interface Plugin {
      * for each component belonging to this plugin, then destroying the
      * container's components via {@link InjectorApi#shutdown(Object)}.
      *
-     * <p>Components are shut down in reverse initialization order:
-     * SubModules first, then Modules, then Managers.</p>
+     * <p>Components are shut down in reverse initialization order: the
+     * deepest Nodes first, then their parents, then the owning Manager.</p>
      */
     default void shutdownPlugin() {
         InjectorApi.executeCallback(this.getClass(), this::onComponentShutdown);

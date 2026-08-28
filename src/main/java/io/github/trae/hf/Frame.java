@@ -8,9 +8,9 @@ import io.github.trae.utilities.UtilString;
 /**
  * The base interface for all hierarchical components within the framework.
  *
- * <p>Every component in the hierarchy (Manager, Module, SubModule) extends Frame,
- * which provides automatic plugin resolution, lifecycle hooks, and a human-readable
- * name derived from the implementing class.</p>
+ * <p>Every component in the hierarchy ({@link Manager} and {@link Node})
+ * extends Frame, which provides automatic plugin resolution, lifecycle hooks,
+ * and a human-readable name derived from the implementing class.</p>
  *
  * <p>Plugin resolution is performed reflectively at runtime using {@link UtilGeneric}
  * to resolve the concrete type parameter, and {@link InjectorApi} to retrieve the
@@ -21,8 +21,13 @@ import io.github.trae.utilities.UtilString;
 public interface Frame<P extends Plugin> extends ToggleableComponent {
 
     /**
-     * Returns a human-readable name for this frame, derived from the
-     * implementing class name by expanding camelCase into spaced words.
+     * Returns a human-readable name for this frame, derived from the simple
+     * name of the implementing class by splitting it into spaced words at each
+     * word boundary — {@code AccountManager} becomes {@code Account Manager}.
+     *
+     * <p>The name comes from {@link Class#getSimpleName()}, so a nested class
+     * contributes only its own name without the enclosing type, and an
+     * anonymous class yields an empty string.</p>
      *
      * @return the formatted name of this frame
      */
