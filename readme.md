@@ -118,7 +118,7 @@ public class SpigotPlugin extends JavaPlugin implements Plugin {
 
 Managers are the direct children of a Plugin:
 ```java
-@Service
+@Singleton
 public class AccountManager implements Manager<CorePlugin> {
 
     @PostConstruct
@@ -132,7 +132,7 @@ public class AccountManager implements Manager<CorePlugin> {
 
 Nodes live beneath a Manager and have typed access to both their parent and their Plugin:
 ```java
-@Component
+@Singleton
 public class AccountCommand implements Node<CorePlugin, AccountManager> {
 
     public void execute() {
@@ -146,7 +146,7 @@ public class AccountCommand implements Node<CorePlugin, AccountManager> {
 
 A Node's parent may itself be a Node, to any depth:
 ```java
-@Component
+@Singleton
 public class RankSubCommand implements Node<CorePlugin, AccountCommand> {
 
     public void execute() {
