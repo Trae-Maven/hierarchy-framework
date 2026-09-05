@@ -33,17 +33,22 @@ public interface Plugin {
     }
 
     /**
-     * Bootstraps the plugin by registering a {@link HierarchyComparator},
-     * initializing the dependency injection container, and executing
-     * {@link #onComponentInitialize(Object)} for each component belonging
-     * to this plugin.
+     * Bootstraps the plugin by registering a {@link HierarchyComparator}, registering the
+     * platform's component-registration callback, initializing the dependency injection
+     * container, and executing {@link #onComponentInitialize(Object)} for each component
+     * belonging to this plugin.
      *
      * <p>Components are initialized in hierarchy order: each {@link Manager}
      * first, then the {@link Node Nodes} beneath it in ascending depth,
      * grouped by their owning Manager.</p>
+     *
+     * <p>The callback is retained by the container so that shared system components can be
+     * re-registered against this plugin if the application that owned them shuts down first.</p>
      */
     default void initializePlugin() {
         ComponentSorter.addComparator(new HierarchyComparator());
+
+        InjectorApi.setComponentRegisterCallback(this.getClass(), this::onComponentInitialize);
 
         InjectorApi.initialize(this);
 
